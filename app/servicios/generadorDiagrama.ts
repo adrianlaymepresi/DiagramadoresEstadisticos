@@ -1,4 +1,4 @@
-import { FilaDatos, ConfiguracionColumnas } from '../tipos';
+import { FilaDatos, ConfiguracionColumnas, OpcionesVisualizacion } from '../tipos';
 
 interface RangosEscala {
   minX: number;
@@ -197,26 +197,37 @@ const dibujarCuadricula = (
   anchoCanvas: number,
   altoCanvas: number,
   margen: number,
-  rangos: RangosEscala
+  rangos: RangosEscala,
+  opciones: OpcionesVisualizacion
 ): void => {
-  const pasos = 10;
-  ctx.strokeStyle = '#F8FAFC';
-  ctx.lineWidth = 0.5;
-
-  for (let i = 1; i < pasos; i++) {
-    const x = margen + ((anchoCanvas - 2 * margen) * i) / pasos;
-    ctx.beginPath();
-    ctx.moveTo(x, margen);
-    ctx.lineTo(x, altoCanvas - margen);
-    ctx.stroke();
+  if (!opciones.cuadricula.mostrarHorizontal && !opciones.cuadricula.mostrarVertical) {
+    return; // No dibujar cuadrícula si ambas están desactivadas
   }
 
-  for (let i = 1; i < pasos; i++) {
-    const y = margen + ((altoCanvas - 2 * margen) * i) / pasos;
-    ctx.beginPath();
-    ctx.moveTo(margen, y);
-    ctx.lineTo(anchoCanvas - margen, y);
-    ctx.stroke();
+  const pasos = 10;
+  ctx.strokeStyle = opciones.cuadricula.color;
+  ctx.lineWidth = opciones.cuadricula.grosor;
+
+  // Líneas verticales
+  if (opciones.cuadricula.mostrarVertical) {
+    for (let i = 1; i < pasos; i++) {
+      const x = margen + ((anchoCanvas - 2 * margen) * i) / pasos;
+      ctx.beginPath();
+      ctx.moveTo(x, margen);
+      ctx.lineTo(x, altoCanvas - margen);
+      ctx.stroke();
+    }
+  }
+
+  // Líneas horizontales
+  if (opciones.cuadricula.mostrarHorizontal) {
+    for (let i = 1; i < pasos; i++) {
+      const y = margen + ((altoCanvas - 2 * margen) * i) / pasos;
+      ctx.beginPath();
+      ctx.moveTo(margen, y);
+      ctx.lineTo(anchoCanvas - margen, y);
+      ctx.stroke();
+    }
   }
 };
 
@@ -274,11 +285,12 @@ const dibujarEjes = (
   margen: number,
   rangos: RangosEscala,
   columnas: ConfiguracionColumnas,
-  datos: FilaDatos[]
+  datos: FilaDatos[],
+  opciones: OpcionesVisualizacion
 ): void => {
-  // Ejes principales
-  ctx.strokeStyle = '#475569';
-  ctx.lineWidth = 2;
+  // Ejes principales con personalización
+  ctx.strokeStyle = opciones.ejes.colorLinea;
+  ctx.lineWidth = opciones.ejes.grosorLinea;
   ctx.beginPath();
   ctx.moveTo(margen, margen);
   ctx.lineTo(margen, altoCanvas - margen);
@@ -291,15 +303,24 @@ const dibujarEjes = (
   ctx.textAlign = 'center';
   ctx.fillText(`Diagrama de Burbujas: ${columnas.nombreTamanio}`, anchoCanvas / 2, 35);
 
-  // Etiquetas de ejes
+  // Etiquetas de ejes con opciones personalizadas
   ctx.font = 'bold 14px sans-serif';
-  ctx.save();
-  ctx.translate(25, altoCanvas / 2);
-  ctx.rotate(-Math.PI / 2);
-  ctx.fillText(columnas.nombreY, 0, 0);
-  ctx.restore();
+  
+  // Título eje Y
+  if (opciones.ejes.mostrarTituloY) {
+    const tituloY = opciones.ejes.tituloYPersonalizado || columnas.nombreY;
+    ctx.save();
+    ctx.translate(25, altoCanvas / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText(tituloY, 0, 0);
+    ctx.restore();
+  }
 
-  ctx.fillText(columnas.nombreX, anchoCanvas / 2, altoCanvas - 20);
+  // Título eje X
+  if (opciones.ejes.mostrarTituloX) {
+    const tituloX = opciones.ejes.tituloXPersonalizado || columnas.nombreX;
+    ctx.fillText(tituloX, anchoCanvas / 2, altoCanvas - 20);
+  }
 
   // Calcular ticks basados en datos reales
   const ticksX = calcularTicksInteligentes(datos, 'x', rangos.minX, rangos.maxX);
@@ -343,16 +364,112 @@ const dibujarEjes = (
   });
 };
 
+// Dibujar líneas de conexión entre burbujas
+const dibujarLineasConexion = (
+  ctx: CanvasRenderingContext2D,
+  burbujas: DatosBurbuja[],
+  opciones: OpcionesVisualizacion
+): void => {
+  if (!opciones.lineasConexion.mostrar || burbujas.length < 2) return;
+
+  ctx.strokeStyle = opciones.lineasConexion.color;
+  ctx.lineWidth = opciones.lineasConexion.grosor;
+  
+  if (opciones.lineasConexion.estilo === 'punteada') {
+    ctx.setLineDash([5, 5]);
+  } else {
+    ctx.setLineDash([]);
+  }
+
+  ctx.beginPath();
+  ctx.moveTo(burbujas[0].x, burbujas[0].y);
+  
+  for (let i = 1; i < burbujas.length; i++) {
+    ctx.lineTo(burbujas[i].x, burbujas[i].y);
+  }
+  
+  ctx.stroke();
+  ctx.setLineDash([]); // Resetear
+};
+
+// Dibujar etiquetas sobre las burbujas
+const dibujarEtiquetasBurbujas = (
+  ctx: CanvasRenderingContext2D,
+  burbujas: DatosBurbuja[],
+  columnas: ConfiguracionColumnas,
+  opciones: OpcionesVisualizacion
+): void => {
+  if (!opciones.etiquetas.mostrar) return;
+
+  ctx.font = `${opciones.etiquetas.tamanioFuente}px sans-serif`;
+  ctx.fillStyle = opciones.etiquetas.color;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  burbujas.forEach((burbuja) => {
+    const etiquetas: string[] = [];
+
+    if (opciones.etiquetas.mostrarX) {
+      etiquetas.push(`${columnas.nombreX}: ${formatearNumeroEje(burbuja.valorX)}`);
+    }
+    if (opciones.etiquetas.mostrarY) {
+      etiquetas.push(`${columnas.nombreY}: ${formatearNumeroEje(burbuja.valorY)}`);
+    }
+    if (opciones.etiquetas.mostrarTamanio) {
+      etiquetas.push(`${formatearNumeroEje(burbuja.valorTamanio)}`);
+    }
+    if (opciones.etiquetas.mostrarColor && burbuja.valorColor) {
+      etiquetas.push(burbuja.valorColor);
+    }
+
+    // Dibujar etiquetas con fondo semi-transparente
+    const offsetY = burbuja.radio + 8;
+    etiquetas.forEach((etiqueta, idx) => {
+      const y = burbuja.y - offsetY - (idx * (opciones.etiquetas.tamanioFuente + 4));
+      
+      // Fondo para legibilidad
+      const medidaTexto = ctx.measureText(etiqueta);
+      const paddingH = 6;
+      const paddingV = 3;
+      
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+      ctx.fillRect(
+        burbuja.x - medidaTexto.width / 2 - paddingH,
+        y - opciones.etiquetas.tamanioFuente / 2 - paddingV,
+        medidaTexto.width + paddingH * 2,
+        opciones.etiquetas.tamanioFuente + paddingV * 2
+      );
+      
+      // Borde sutil
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(
+        burbuja.x - medidaTexto.width / 2 - paddingH,
+        y - opciones.etiquetas.tamanioFuente / 2 - paddingV,
+        medidaTexto.width + paddingH * 2,
+        opciones.etiquetas.tamanioFuente + paddingV * 2
+      );
+      
+      // Texto
+      ctx.fillStyle = opciones.etiquetas.color;
+      ctx.fillText(etiqueta, burbuja.x, y);
+    });
+  });
+};
 
 
-// Dibujar leyenda de colores
+
+// Dibujar leyenda de colores con posicionamiento
 const dibujarLeyenda = (
   ctx: CanvasRenderingContext2D,
   datos: FilaDatos[],
   anchoCanvas: number,
-  columnas: ConfiguracionColumnas
+  altoCanvas: number,
+  margen: number,
+  columnas: ConfiguracionColumnas,
+  opciones: OpcionesVisualizacion
 ): void => {
-  if (!columnas.nombreColor) return;
+  if (!opciones.leyenda.mostrar || !columnas.nombreColor) return;
   
   // Obtener colores únicos con sus valores originales
   const coloresUnicos = new Map<string, string>();
@@ -366,8 +483,18 @@ const dibujarLeyenda = (
   if (coloresUnicos.size === 0) return;
   
   const items = Array.from(coloresUnicos.entries());
-  const startX = anchoCanvas - 200;
-  let startY = 60;
+  
+  let startX: number;
+  let startY: number;
+  
+  if (opciones.leyenda.posicion === 'derecha') {
+    startX = anchoCanvas - 200;
+    startY = 60;
+  } else {
+    // Posición inferior
+    startX = margen + 20;
+    startY = altoCanvas - margen + 40;
+  }
   
   ctx.font = 'bold 12px sans-serif';
   ctx.fillStyle = '#1E293B';
@@ -376,28 +503,53 @@ const dibujarLeyenda = (
   startY += 20;
   
   ctx.font = '11px sans-serif';
-  items.forEach(([valor, color], idx) => {
-    const y = startY + idx * 22;
-    
-    // Cuadro de color
-    ctx.fillStyle = color;
-    ctx.globalAlpha = 0.7;
-    ctx.fillRect(startX, y - 10, 14, 14);
-    ctx.globalAlpha = 1;
-    ctx.strokeStyle = '#94A3B8';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(startX, y - 10, 14, 14);
-    
-    // Texto
-    ctx.fillStyle = '#475569';
-    ctx.fillText(valor.length > 15 ? valor.substring(0, 15) + '...' : valor, startX + 20, y);
-  });
+  
+  if (opciones.leyenda.posicion === 'derecha') {
+    // Layout vertical
+    items.forEach(([valor, color], idx) => {
+      const y = startY + idx * 22;
+      
+      // Cuadro de color
+      ctx.fillStyle = color;
+      ctx.globalAlpha = opciones.burbujas.transparencia / 100;
+      ctx.fillRect(startX, y - 10, 14, 14);
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = '#94A3B8';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(startX, y - 10, 14, 14);
+      
+      // Texto
+      ctx.fillStyle = '#475569';
+      ctx.fillText(valor.length > 15 ? valor.substring(0, 15) + '...' : valor, startX + 20, y);
+    });
+  } else {
+    // Layout horizontal
+    let offsetX = 0;
+    items.forEach(([valor, color]) => {
+      // Cuadro de color
+      ctx.fillStyle = color;
+      ctx.globalAlpha = opciones.burbujas.transparencia / 100;
+      ctx.fillRect(startX + offsetX, startY - 10, 14, 14);
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = '#94A3B8';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(startX + offsetX, startY - 10, 14, 14);
+      
+      // Texto
+      ctx.fillStyle = '#475569';
+      const textoCorto = valor.length > 12 ? valor.substring(0, 12) + '...' : valor;
+      ctx.fillText(textoCorto, startX + offsetX + 20, startY);
+      
+      offsetX += ctx.measureText(textoCorto).width + 40;
+    });
+  }
 };
 
 export const dibujarDiagrama = (
   canvas: HTMLCanvasElement,
   datos: FilaDatos[],
-  columnas: ConfiguracionColumnas
+  columnas: ConfiguracionColumnas,
+  opciones: OpcionesVisualizacion
 ): void => {
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
@@ -412,37 +564,40 @@ export const dibujarDiagrama = (
 
   const rangos = calcularRangos(datos);
   
-  dibujarCuadricula(ctx, anchoCanvas, altoCanvas, margen, rangos);
-  dibujarEjes(ctx, anchoCanvas, altoCanvas, margen, rangos, columnas, datos);
+  // Dibujar cuadrícula (condicional y personalizable)
+  dibujarCuadricula(ctx, anchoCanvas, altoCanvas, margen, rangos, opciones);
+  
+  // Dibujar ejes (con personalización)
+  dibujarEjes(ctx, anchoCanvas, altoCanvas, margen, rangos, columnas, datos, opciones);
 
   const burbujas = calcularDatosBurbujas(datos, anchoCanvas, altoCanvas, margen);
 
-  // Dibujar burbujas con estilo profesional
+  // Dibujar líneas de conexión (si está activado)
+  dibujarLineasConexion(ctx, burbujas, opciones);
+
+  // Dibujar burbujas con opciones personalizables
   burbujas.forEach((burbuja) => {
-    // Fill sólido con transparencia ligera
+    // Fill con transparencia personalizable
     ctx.fillStyle = burbuja.color;
-    ctx.globalAlpha = 0.7;
+    ctx.globalAlpha = opciones.burbujas.transparencia / 100;
     ctx.beginPath();
     ctx.arc(burbuja.x, burbuja.y, burbuja.radio, 0, 2 * Math.PI);
     ctx.fill();
+    ctx.globalAlpha = 1;
 
-    // Borde fino para definición
-    ctx.globalAlpha = 1;
-    ctx.strokeStyle = '#FFFFFF';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-    
-    // Borde de color más oscuro para mejor separación
-    ctx.strokeStyle = burbuja.color;
-    ctx.lineWidth = 0.5;
-    ctx.globalAlpha = 0.4;
-    ctx.stroke();
-    
-    ctx.globalAlpha = 1;
+    // Borde personalizable
+    if (opciones.burbujas.mostrarBorde && opciones.burbujas.grosorBorde > 0) {
+      ctx.strokeStyle = opciones.burbujas.colorBorde;
+      ctx.lineWidth = opciones.burbujas.grosorBorde;
+      ctx.stroke();
+    }
   });
   
-  // Dibujar leyenda si hay cuarta dimensión
-  dibujarLeyenda(ctx, datos, anchoCanvas, columnas);
+  // Dibujar etiquetas sobre burbujas (si está activado)
+  dibujarEtiquetasBurbujas(ctx, burbujas, columnas, opciones);
+  
+  // Dibujar leyenda si hay cuarta dimensión (con posicionamiento)
+  dibujarLeyenda(ctx, datos, anchoCanvas, altoCanvas, margen, columnas, opciones);
 };
 
 // Exportar burbujas para interactividad (tooltips)
