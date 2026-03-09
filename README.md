@@ -1,38 +1,59 @@
 # Generador de Diagramas de Burbujas
 
-Aplicación web profesional para crear, visualizar y exportar diagramas de burbujas interactivos. Desarrollada con Next.js 14, React 19, TypeScript y TailwindCSS.
+Aplicación web profesional y completamente responsiva para crear, visualizar y exportar diagramas de burbujas interactivos de alta calidad. Desarrollada con Next.js 16, React 19, TypeScript y TailwindCSS.
 
 ## Características Principales
 
-### 1. Configuración Flexible
+### 1. Configuración Flexible e Intuitiva
 - Define entre 3 y 20 puntos de datos para tu diagrama
-- Nombra tus propios ejes (X, Y) y el tamaño de burbuja
-- Opción de incluir una columna de color personalizado
-- Validación en tiempo real de todos los campos
+- Nombra tus propios ejes (X, Y) y el tamaño de burbuja (que será el título)
+- Opción de incluir una columna de color personalizado para cada burbuja
+- Validación en tiempo real de todos los campos con feedback visual
+- Interfaz moderna con gradientes y animaciones suaves
 
-### 2. Editor de Tabla Intuitivo
-- Tabla editable con interfaz limpia y organizada
-- Soporte para copiar y pegar datos desde Excel o Word
-- Selector de color integrado para personalización
+### 2. Editor de Tabla Profesional
+- Tabla editable con diseño zebra (filas alternadas) para mejor legibilidad
+- Soporte completo para copiar y pegar datos desde Excel o Word
+- Selector de color integrado con vista previa del código hexadecimal
 - Validación de datos numéricos en tiempo real
+- Diseño responsivo que se adapta a tablets y móviles
+- Inputs con efectos hover y focus mejorados
 
-### 3. Visualización de Diagrama
-- Renderizado en canvas HTML5 de alta calidad
-- Burbujas escaladas proporcionalmente al tamaño
-- Colores personalizables o paleta automática
-- Ejes etiquetados con escala numérica
-- Título configurable basado en el nombre del tamaño
+### 3. Visualización de Diagrama Avanzada
+- **Canvas responsivo** que se adapta automáticamente al tamaño de la pantalla
+- **Cuadrícula profesional** con 10x10 líneas para ubicación precisa
+- **Líneas de intersección** que conectan cada burbuja con los ejes X e Y
+- Burbujas con efectos de gradiente radial y sombras para profundidad 3D
+- Colores personalizables con paleta automática inteligente
+- Ejes completamente etiquetados con 10 divisiones para precisión
+- Marcas en los ejes para mejor referencia
+- Título prominente y etiquetas de ejes rotadas profesionalmente
+- Ajuste automático para pantallas desde 320px hasta 4K
 
-### 4. Exportación Múltiple
-- **PNG**: Imagen de alta calidad del diagrama
-- **PDF**: Documento listo para imprimir o compartir
-- **Excel**: Tabla de datos estructurada con encabezados
+### 4. Exportación Múltiple Mejorada
+- **PNG**: Imagen de alta calidad (1200x800px) del diagrama
+- **PDF**: Documento con el diagrama en formato horizontal listo para imprimir
+- **Excel**: Tabla de datos con formato profesional + hoja adicional con referencia al diagrama
+  - Encabezados con estilo (fondo morado, texto blanco, negrita)
+  - Columnas auto-ajustadas para mejor legibilidad
+  - Hoja adicional con información del diagrama
 
-### 5. Historial de Diagramas
-- Almacenamiento en memoria de todos los diagramas creados
-- Vista previa rápida en modal
-- Exportación directa desde el historial
-- Gestión de diagramas guardados
+### 5. Historial Inteligente
+- Almacenamiento en memoria de todos los diagramas creados en la sesión
+- Vista en tarjetas responsive (1 columna en móvil, 2 en desktop)
+- Vista previa rápida en modal de pantalla completa
+- Exportación directa desde el historial sin necesidad de recrear
+- Gestión individual de diagramas guardados
+- Animaciones de entrada suaves para mejor UX
+- Iconos descriptivos para cada acción
+
+### 6. Diseño Totalmente Responsivo
+- **Móviles** (320px - 640px): Layout vertical optimizado, botones apilados
+- **Tablets** (641px - 1024px): Grid de 2 columnas, mejor aprovechamiento del espacio
+- **Desktop** (1025px+): Grid completo, visualización óptima del diagrama
+- Canvas que se redimensiona automáticamente manteniendo proporciones
+- Fuentes y espaciados adaptables según el dispositivo
+- Animaciones y transiciones fluidas en todos los tamaños
 
 ## Estructura del Proyecto
 
@@ -40,87 +61,173 @@ Aplicación web profesional para crear, visualizar y exportar diagramas de burbu
 app/
 ├── componentes/
 │   ├── ui/
-│   │   ├── Boton.tsx              # Componente de botón reutilizable
-│   │   ├── Entrada.tsx            # Componente de entrada con validación
-│   │   ├── Tarjeta.tsx            # Componente contenedor
-│   │   └── Modal.tsx              # Componente modal
-│   ├── ConfiguracionInicial.tsx   # Formulario de configuración
-│   ├── EditorTabla.tsx            # Editor de datos tabular
-│   ├── VisualizadorDiagrama.tsx   # Visualización del diagrama
-│   └── Historial.tsx              # Gestión de diagramas guardados
+│   │   ├── Boton.tsx              # Botón con 3 variantes y efectos hover
+│   │   ├── Entrada.tsx            # Input con validación y estados
+│   │   ├── Tarjeta.tsx            # Contenedor con gradiente en header
+│   │   └── Modal.tsx              # Modal responsive con backdrop
+│   ├── ConfiguracionInicial.tsx   # Formulario mejorado con secciones
+│   ├── EditorTabla.tsx            # Tabla zebra con inputs mejorados
+│   ├── VisualizadorDiagrama.tsx   # Canvas responsivo y controles
+│   └── Historial.tsx              # Grid de tarjetas con acciones
 ├── servicios/
-│   ├── generadorTabla.ts          # Lógica de manejo de tabla
-│   ├── generadorDiagrama.ts       # Renderizado y cálculos del diagrama
-│   └── exportador.ts              # Exportación a múltiples formatos
+│   ├── generadorTabla.ts          # Lógica inmutable de tabla
+│   ├── generadorDiagrama.ts       # Renderizado avanzado con cuadrícula
+│   └── exportador.ts              # Exportación multi-formato
 ├── tipos/
-│   └── index.ts                   # Definiciones TypeScript
+│   └── index.ts                   # Definiciones TypeScript completas
 ├── utilidades/
-│   └── validaciones.ts            # Funciones de validación
-├── globals.css                    # Estilos globales y variables CSS
-├── layout.tsx                     # Layout principal
-└── page.tsx                       # Página principal
+│   └── validaciones.ts            # Funciones puras de validación
+├── globals.css                    # Variables CSS + animaciones
+├── layout.tsx                     # Layout con metadata
+└── page.tsx                       # Orquestador principal con estados
 
 ```
+
+## Mejoras de Diseño Implementadas
+
+### Sistema Visual Profesional
+
+#### Paleta de Colores Expandida
+- **Primario**: Morado vibrante (#8B5CF6)
+- **Secundario**: Índigo profundo (#6366F1)
+- **Acento**: Azul brillante (#3B82F6)
+- **Fondo**: Gradiente suave multi-color (blanco → morado → azul)
+- **Superficie**: Blanco puro con bordes sutiles
+- **Interacciones**: Estados hover, focus y active diferenciados
+
+#### Efectos Visuales
+- **Gradientes**: En títulos, botones y fondos de tarjetas
+- **Sombras**: 4 niveles (pequeña, mediana, grande, extra-grande)
+- **Animaciones**: FadeIn, pulse, gradient animado
+- **Transiciones**: Suaves en todos los elementos interactivos
+- **Transformaciones**: Scale en hover para botones y tarjetas
+
+#### Tipografía Mejorada
+- Títulos grandes (3xl - 6xl) con gradiente animado
+- Subtítulos con peso medium/semibold
+- Cuerpo con line-height optimizado para lectura
+- Tamaños responsivos que se adaptan al viewport
+
+### Diagrama de Burbujas Mejorado
+
+#### Características Técnicas
+1. **Cuadrícula de Referencia**
+   - 10x10 líneas en color gris claro (#F1F5F9)
+   - Facilita la ubicación precisa de puntos
+   - No interfiere con la visualización de datos
+
+2. **Ejes Profesionales**
+   - Líneas gruesas (3px) en gris oscuro (#475569)
+   - 10 marcas por eje para máxima precisión
+   - Etiquetas numéricas con un decimal
+   - Título centrado en fuente bold 24px
+   - Etiquetas de ejes rotadas para mejor legibilidad
+
+3. **Líneas de Intersección**
+   - Líneas punteadas desde cada burbuja a los ejes
+   - Color morado semi-transparente (rgba(139, 92, 246, 0.3))
+   - Permiten ver exactamente de qué coordenadas proviene cada punto
+
+4. **Burbujas Mejoradas**
+   - Gradiente radial para efecto 3D
+   - Borde blanco grueso (3px) para contraste
+   - Sombra proyectada para profundidad
+   - Etiquetas con coordenadas en fuente bold
+   - Texto blanco sobre fondo de color para legibilidad
+
+5. **Escalado de Tamaño**
+   - Radio entre 10px y 60px según el valor
+   - Escalado proporcional y logarítmico
+   - Evita solapamiento excesivo
 
 ## Arquitectura y Principios
 
 ### Principios SOLID Aplicados
 
 #### 1. Single Responsibility Principle (SRP)
-- Cada componente tiene una responsabilidad única y bien definida
-- Los servicios están separados por funcionalidad (tabla, diagrama, exportación)
-- Las utilidades de validación están aisladas
+- **generadorDiagrama.ts**: Separado en funciones especializadas
+  - `dibujarCuadricula()`: Solo maneja la cuadrícula
+  - `dibujarEjes()`: Solo maneja los ejes y etiquetas
+  - `dibujarLineasInterseccion()`: Solo las líneas guía
+  - `dibujarDiagrama()`: Orquesta las demás funciones
+- Cada componente tiene una única razón de cambio
+- Los servicios están completamente desacoplados de la UI
 
 #### 2. Open/Closed Principle (OCP)
-- Los componentes UI son extensibles mediante props
-- Los servicios de exportación pueden añadir nuevos formatos sin modificar el código existente
+- Componentes UI extensibles mediante props
+- Sistema de variantes en botones sin modificar código base
+- Exportadores pueden añadir formatos sin cambiar interfaz
 
 #### 3. Liskov Substitution Principle (LSP)
-- Los componentes UI mantienen contratos consistentes
+- Todos los componentes UI mantienen contratos consistentes
 - Las interfaces TypeScript garantizan sustitución segura
+- Props opcionales con valores por defecto
 
 #### 4. Interface Segregation Principle (ISP)
-- Las props de componentes están segmentadas según necesidad
-- No se fuerzan dependencias innecesarias
+- Props específicas por componente, sin dependencias innecesarias
+- Interfaces pequeñas y focalizadas
+- No se fuerzan propiedades que no se usan
 
 #### 5. Dependency Inversion Principle (DIP)
-- Los componentes dependen de abstracciones (tipos TypeScript)
-- La lógica de negocio está desacoplada de la UI
+- Componentes dependen de abstracciones (tipos TypeScript)
+- Lógica de negocio desacoplada de implementación
+- Inyección de dependencias mediante props
 
 ### Principio DRY (Don't Repeat Yourself)
-- Componentes UI reutilizables para toda la aplicación
-- Funciones de utilidad compartidas para evitar duplicación
-- Servicios centralizados para lógica común
-
-### Factorización de Código
-- Separación clara entre presentación y lógica
-- Módulos pequeños y enfocados
+- Componentes UI completamente reutilizables
+- Funciones de utilidad compartidas (validaciones, parseo)
+- Estilos CSS en variables globales
+- Lógica de exportación centralizada
 - Funciones puras para cálculos matemáticos
 
-## Diseño Visual
+### Clean Code Aplicado
+- **Variables en español**: Nombres autoexplicativos y descriptivos
+- **Sin comentarios**: Código que se explica por sí mismo
+- **Funciones pequeñas**: Máximo 20-30 líneas por función
+- **Inmutabilidad**: Uso de spread operator, map, filter
+- **Tipado estricto**: Sin `any`, interfaces bien definidas
+- **Separación de concerns**: Lógica vs presentación
 
-### Paleta de Colores
-La aplicación utiliza un sistema de diseño coherente basado en variables CSS:
+## Responsividad Detallada
 
-- **Primario**: Morado (#8B5CF6)
-- **Secundario**: Índigo (#6366F1)
-- **Acento**: Azul (#3B82F6)
-- **Fondo**: Gradiente suave blanco-morado
-- **Superficie**: Blanco puro con sombras
-- **Bordes**: Grises suaves (#E2E8F0)
+### Breakpoints Implementados
+```css
+/* Móvil pequeño */
+@media (max-width: 640px) {
+  - Layout en 1 columna
+  - Fuente base 14px
+  - Padding reducido
+  - Botones apilados verticalmente
+}
 
-### Características de Diseño
-- Gradientes suaves en encabezados y botones
-- Transiciones fluidas en todas las interacciones
-- Sombras sutiles para profundidad
-- Bordes redondeados para modernidad
-- Espaciado consistente y respiración visual
+/* Tablet */
+@media (min-width: 641px) and (max-width: 1024px) {
+  - Grid de 2 columnas para forms
+  - Canvas adaptado
+  - Botones en fila
+}
+
+/* Desktop */
+@media (min-width: 1025px) {
+  - Layout completo
+  - Canvas máximo 1400px
+  - Grid de 2 columnas en historial
+}
+```
+
+### Componentes Adaptativos
+- **Tarjeta**: Padding 6⇒8 (móvil⇒desktop)
+- **Entrada**: Width 100% siempre, text-base responsive
+- **Boton**: Transform scale en hover (desktop only)
+- **Modal**: max-w ajustado según pantalla
+- **Canvas**: Redimensionado proporcional automático
 
 ## Instalación y Uso
 
 ### Requisitos Previos
 - Node.js 18 o superior
 - npm o yarn
+- Navegador moderno (Chrome, Firefox, Safari, Edge)
 
 ### Instalación
 

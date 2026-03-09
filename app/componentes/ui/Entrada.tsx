@@ -28,11 +28,12 @@ export const Entrada: React.FC<PropiedadesEntrada> = ({
   const estilosContenedor = ancho === 'completo' ? 'w-full' : 'w-auto';
   
   const estilosEntrada = `
-    w-full px-4 py-2 rounded-lg border-2
-    ${error ? 'border-red-500' : 'border-gray-300'}
-    focus:outline-none focus:border-purple-500
-    transition-colors duration-200
-    bg-white text-gray-900
+    w-full px-4 py-3 rounded-xl border-2 text-base
+    ${error ? 'border-red-500 bg-red-50' : 'border-gray-300 bg-white'}
+    focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-200
+    transition-all duration-200
+    text-gray-900 placeholder-gray-400
+    hover:border-purple-400
   `;
 
   return (

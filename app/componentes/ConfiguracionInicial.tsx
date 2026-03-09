@@ -64,86 +64,101 @@ export const ConfiguracionInicial: React.FC<PropiedadesConfiguracionInicial> = (
   };
 
   return (
-    <Tarjeta titulo="Configuración del Diagrama de Burbujas">
-      <div className="space-y-6">
-        <div className="bg-gradient-to-r from-purple-50 to-blue-50 p-4 rounded-lg">
-          <p className="text-gray-700 text-sm leading-relaxed">
-            Configure los parámetros iniciales para crear su diagrama de burbujas.
-            Podrá ingresar entre 3 y 20 puntos de datos.
-          </p>
+    <Tarjeta titulo="Configuración del Diagrama">
+      <div className="space-y-8">
+        <div className="bg-gradient-to-br from-purple-50 via-blue-50 to-purple-50 p-8 rounded-2xl border-2 border-purple-200">
+          <div className="flex items-start gap-4">
+            <span className="text-4xl">📊</span>
+            <p className="text-gray-700 text-base md:text-lg leading-relaxed flex-1">
+              Configure los parámetros iniciales para crear su diagrama de burbujas.
+              Podrá ingresar entre <span className="font-bold text-purple-600">3 y 20</span> puntos de datos.
+            </p>
+          </div>
         </div>
 
-        <Entrada
-          valor={numeroFilas}
-          onChange={setNumeroFilas}
-          tipo="number"
-          etiqueta="Número de Filas"
-          placeholder="Ingrese entre 3 y 20"
-          error={errores.numeroFilas}
-          requerido
-          min={3}
-          max={20}
-        />
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-white p-8 rounded-2xl border-2 border-gray-200 space-y-6">
           <Entrada
-            valor={nombreX}
-            onChange={setNombreX}
-            tipo="text"
-            etiqueta="Nombre del Eje X"
-            placeholder="Ej: Periodo en Meses"
-            error={errores.nombreX}
+            valor={numeroFilas}
+            onChange={setNumeroFilas}
+            tipo="number"
+            etiqueta="Número de Filas"
+            placeholder="Ingrese entre 3 y 20"
+            error={errores.numeroFilas}
             requerido
-          />
-
-          <Entrada
-            valor={nombreY}
-            onChange={setNombreY}
-            tipo="text"
-            etiqueta="Nombre del Eje Y"
-            placeholder="Ej: Número de Casos"
-            error={errores.nombreY}
-            requerido
+            min={3}
+            max={20}
           />
         </div>
 
-        <Entrada
-          valor={nombreTamanio}
-          onChange={setNombreTamanio}
-          tipo="text"
-          etiqueta="Nombre del Tamaño de Burbuja"
-          placeholder="Ej: TBC"
-          error={errores.nombreTamanio}
-          requerido
-        />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-white p-6 rounded-2xl border-2 border-gray-200">
+            <Entrada
+              valor={nombreX}
+              onChange={setNombreX}
+              tipo="text"
+              etiqueta="Nombre del Eje X"
+              placeholder="Ej: Periodo en Meses"
+              error={errores.nombreX}
+              requerido
+            />
+          </div>
 
-        <div className="flex items-center gap-3">
-          <input
-            type="checkbox"
-            id="incluirColor"
-            checked={incluirColor}
-            onChange={(e) => setIncluirColor(e.target.checked)}
-            className="w-5 h-5 text-purple-600 rounded focus:ring-2 focus:ring-purple-500"
-          />
-          <label htmlFor="incluirColor" className="text-gray-700 font-medium">
-            Incluir columna de color personalizado
-          </label>
+          <div className="bg-white p-6 rounded-2xl border-2 border-gray-200">
+            <Entrada
+              valor={nombreY}
+              onChange={setNombreY}
+              tipo="text"
+              etiqueta="Nombre del Eje Y"
+              placeholder="Ej: Número de Casos"
+              error={errores.nombreY}
+              requerido
+            />
+          </div>
         </div>
 
-        {incluirColor && (
+        <div className="bg-white p-6 rounded-2xl border-2 border-gray-200">
           <Entrada
-            valor={nombreColor}
-            onChange={setNombreColor}
+            valor={nombreTamanio}
+            onChange={setNombreTamanio}
             tipo="text"
-            etiqueta="Nombre de la Columna de Color"
-            placeholder="Ej: Color"
-            error={errores.nombreColor}
+            etiqueta="Nombre del Tamaño de Burbuja (Título del Diagrama)"
+            placeholder="Ej: TBC"
+            error={errores.nombreTamanio}
             requerido
           />
-        )}
+        </div>
 
-        <Boton onClick={manejarEnvio} variante="primario" ancho="completo">
-          Continuar
+        <div className="bg-white p-6 rounded-2xl border-2 border-gray-200">
+          <div className="flex items-center gap-4">
+            <input
+              type="checkbox"
+              id="incluirColor"
+              checked={incluirColor}
+              onChange={(e) => setIncluirColor(e.target.checked)}
+              className="w-7 h-7 text-purple-600 rounded-lg focus:ring-2 focus:ring-purple-500 cursor-pointer"
+            />
+            <label htmlFor="incluirColor" className="text-gray-700 font-semibold cursor-pointer flex-1 text-base md:text-lg">
+              Incluir columna de color personalizado
+            </label>
+          </div>
+
+          {incluirColor && (
+            <div className="mt-6 pl-11">
+              <Entrada
+                valor={nombreColor}
+                onChange={setNombreColor}
+                tipo="text"
+                etiqueta="Nombre de la Columna de Color"
+                placeholder="Ej: Color"
+                error={errores.nombreColor}
+                requerido
+              />
+            </div>
+          )}
+        </div>
+
+        <Boton onClick={manejarEnvio} variante="primario" ancho="completo" className="text-lg px-8 py-4">
+          Continuar →
         </Boton>
       </div>
     </Tarjeta>

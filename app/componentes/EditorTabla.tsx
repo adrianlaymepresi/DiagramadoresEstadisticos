@@ -85,95 +85,114 @@ export const EditorTabla: React.FC<PropiedadesEditorTabla> = ({
 
   return (
     <Tarjeta titulo="Ingresar Datos">
-      <div className="space-y-6">
-        <div className="bg-blue-50 p-4 rounded-lg">
-          <p className="text-sm text-gray-700">
-            💡 Puede copiar datos desde Excel o Word y pegarlos directamente en la tabla.
-          </p>
+      <div className="space-y-8">
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-8 rounded-2xl border-2 border-blue-200">
+          <div className="flex items-start gap-4">
+            <span className="text-3xl">💡</span>
+            <p className="text-base md:text-lg text-gray-700 flex-1 leading-relaxed">
+              Puede copiar datos desde <span className="font-bold">Excel</span> o <span className="font-bold">Word</span> y pegarlos directamente en la tabla.
+            </p>
+          </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table
-            className="w-full border-collapse"
-            onPaste={manejarPegado}
-          >
-            <thead>
-              <tr className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white">
-                <th className="px-4 py-3 text-left font-semibold border border-purple-500">
-                  #
-                </th>
-                <th className="px-4 py-3 text-left font-semibold border border-purple-500">
-                  {columnas.nombreX}
-                </th>
-                <th className="px-4 py-3 text-left font-semibold border border-purple-500">
-                  {columnas.nombreY}
-                </th>
-                <th className="px-4 py-3 text-left font-semibold border border-purple-500">
-                  {columnas.nombreTamanio}
-                </th>
-                {columnas.nombreColor && (
-                  <th className="px-4 py-3 text-left font-semibold border border-purple-500">
-                    {columnas.nombreColor}
+        <div className="bg-white rounded-2xl border-2 border-gray-200 overflow-hidden shadow-lg">
+          <div className="overflow-x-auto">
+            <table
+              className="w-full border-collapse min-w-[700px]"
+              onPaste={manejarPegado}
+            >
+              <thead>
+                <tr className="bg-gradient-to-r from-purple-600 to-indigo-600">
+                  <th className="px-6 py-5 text-center font-bold text-white border-r border-purple-500 w-20 text-lg">
+                    #
                   </th>
-                )}
-              </tr>
-            </thead>
-            <tbody>
-              {filas.map((fila, indice) => (
-                <tr
-                  key={indice}
-                  className="hover:bg-purple-50 transition-colors"
-                >
-                  <td className="px-4 py-2 border border-gray-300 font-medium text-gray-600">
-                    {indice + 1}
-                  </td>
-                  <td className="px-4 py-2 border border-gray-300">
-                    <input
-                      type="number"
-                      value={fila.x || ''}
-                      onChange={(e) => manejarCambio(indice, 'x', e.target.value)}
-                      className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:border-purple-500"
-                    />
-                  </td>
-                  <td className="px-4 py-2 border border-gray-300">
-                    <input
-                      type="number"
-                      value={fila.y || ''}
-                      onChange={(e) => manejarCambio(indice, 'y', e.target.value)}
-                      className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:border-purple-500"
-                    />
-                  </td>
-                  <td className="px-4 py-2 border border-gray-300">
-                    <input
-                      type="number"
-                      value={fila.tamanio || ''}
-                      onChange={(e) => manejarCambio(indice, 'tamanio', e.target.value)}
-                      className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:border-purple-500"
-                    />
-                  </td>
+                  <th className="px-6 py-5 text-left font-bold text-white border-r border-purple-500 text-lg">
+                    {columnas.nombreX}
+                  </th>
+                  <th className="px-6 py-5 text-left font-bold text-white border-r border-purple-500 text-lg">
+                    {columnas.nombreY}
+                  </th>
+                  <th className="px-6 py-5 text-left font-bold text-white border-r border-purple-500 text-lg">
+                    {columnas.nombreTamanio}
+                  </th>
                   {columnas.nombreColor && (
-                    <td className="px-4 py-2 border border-gray-300">
-                      <input
-                        type="color"
-                        value={fila.color || '#8B5CF6'}
-                        onChange={(e) => manejarCambio(indice, 'color', e.target.value)}
-                        className="w-full h-8 cursor-pointer rounded"
-                      />
-                    </td>
+                    <th className="px-6 py-5 text-center font-bold text-white text-lg">
+                      {columnas.nombreColor}
+                    </th>
                   )}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filas.map((fila, indice) => (
+                  <tr
+                    key={indice}
+                    className={`
+                      transition-all duration-200
+                      ${indice % 2 === 0 ? 'bg-gray-50' : 'bg-white'}
+                      hover:bg-purple-50
+                    `}
+                  >
+                    <td className="px-6 py-4 border border-gray-200 font-bold text-purple-600 text-center text-lg">
+                      {indice + 1}
+                    </td>
+                    <td className="px-6 py-4 border border-gray-200">
+                      <input
+                        type="number"
+                        value={fila.x || ''}
+                        onChange={(e) => manejarCambio(indice, 'x', e.target.value)}
+                        step="any"
+                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all text-base"
+                      />
+                    </td>
+                    <td className="px-6 py-4 border border-gray-200">
+                      <input
+                        type="number"
+                        value={fila.y || ''}
+                        onChange={(e) => manejarCambio(indice, 'y', e.target.value)}
+                        step="any"
+                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all text-base"
+                      />
+                    </td>
+                    <td className="px-6 py-4 border border-gray-200">
+                      <input
+                        type="number"
+                        value={fila.tamanio || ''}
+                        onChange={(e) => manejarCambio(indice, 'tamanio', e.target.value)}
+                        step="any"
+                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all text-base"
+                      />
+                    </td>
+                    {columnas.nombreColor && (
+                      <td className="px-6 py-4 border border-gray-200">
+                        <div className="flex items-center justify-center gap-3">
+                          <input
+                            type="color"
+                            value={fila.color || '#8B5CF6'}
+                            onChange={(e) => manejarCambio(indice, 'color', e.target.value)}
+                            className="w-14 h-14 cursor-pointer rounded-lg border-2 border-gray-300"
+                          />
+                          <span className="text-sm text-gray-600 font-mono bg-gray-100 px-3 py-2 rounded-lg">
+                            {fila.color || '#8B5CF6'}
+                          </span>
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
-        <div className="flex gap-4">
-          <Boton onClick={alVolver} variante="outline" ancho="auto">
-            Volver
+        <div className="flex flex-col sm:flex-row gap-6 pt-6">
+          <Boton onClick={alVolver} variante="outline" ancho="auto" className="text-lg px-8 py-4">
+            ← Volver
           </Boton>
-          <Boton onClick={manejarGenerar} variante="primario" ancho="completo">
-            Generar Diagrama
-          </Boton>
+          <div className="flex-1">
+            <Boton onClick={manejarGenerar} variante="primario" ancho="completo" className="text-lg px-8 py-4">
+              Generar Diagrama →
+            </Boton>
+          </div>
         </div>
       </div>
     </Tarjeta>

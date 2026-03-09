@@ -62,28 +62,34 @@ export default function PaginaPrincipal() {
   };
 
   return (
-    <div className="min-h-screen py-8 px-4">
-      <div className="max-w-6xl mx-auto">
-        <header className="text-center mb-8">
-          <h1 className="text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-600 mb-3">
+    <div className="min-h-screen py-8 px-6 sm:py-12 lg:py-16">
+      <div className="w-full max-w-[1800px] mx-auto">
+        <header className="text-center mb-12 lg:mb-16">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 mb-4 animate-gradient">
             Generador de Diagramas de Burbujas
           </h1>
-          <p className="text-gray-600 text-lg">
-            Cree y visualice diagramas de burbujas profesionales
+          <p className="text-gray-600 text-base sm:text-lg md:text-xl mx-auto">
+            Cree y visualice diagramas de burbujas profesionales de manera intuitiva
           </p>
+          <div className="mt-4 flex items-center justify-center gap-2 text-sm text-gray-500">
+            <span className="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+            Sistema en línea
+          </div>
         </header>
 
-        <div className="mb-6 flex justify-center">
+        <div className="mb-10 lg:mb-12 flex justify-center">
           <button
             onClick={() => setMostrarHistorial(!mostrarHistorial)}
-            className="px-6 py-2 bg-white border-2 border-purple-600 text-purple-600 rounded-lg font-medium hover:bg-purple-50 transition-colors"
+            className="px-8 py-4 bg-white border-2 border-purple-600 text-purple-600 rounded-xl font-semibold hover:bg-purple-50 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 text-lg"
           >
-            {mostrarHistorial ? 'Ocultar Historial' : `Ver Historial (${diagramasGuardados.length})`}
+            <span className="flex items-center gap-2">
+              {mostrarHistorial ? '📊 Ocultar Historial' : `📚 Ver Historial (${diagramasGuardados.length})`}
+            </span>
           </button>
         </div>
 
         {mostrarHistorial && (
-          <div className="mb-8">
+          <div className="mb-12 lg:mb-16 animate-fadeIn">
             <Historial
               diagramas={diagramasGuardados}
               alEliminar={manejarEliminarDiagrama}
@@ -91,9 +97,9 @@ export default function PaginaPrincipal() {
           </div>
         )}
 
-        <div className="flex justify-center">
+        <div className="w-full">
           {etapaActual === 'configuracion' && (
-            <div className="w-full max-w-2xl">
+            <div className="w-full max-w-5xl mx-auto px-4 animate-fadeIn">
               <ConfiguracionInicial
                 alConfirmar={manejarConfiguracionInicial}
               />
@@ -101,7 +107,7 @@ export default function PaginaPrincipal() {
           )}
 
           {etapaActual === 'edicion' && configuracionActual && (
-            <div className="w-full">
+            <div className="w-full px-4 animate-fadeIn">
               <EditorTabla
                 numeroFilas={configuracionActual.numeroFilas}
                 columnas={configuracionActual.configuracionColumnas}
@@ -112,7 +118,7 @@ export default function PaginaPrincipal() {
           )}
 
           {etapaActual === 'visualizacion' && configuracionActual && (
-            <div className="w-full max-w-4xl">
+            <div className="w-full px-4 animate-fadeIn">
               <VisualizadorDiagrama
                 configuracion={configuracionActual}
                 alNuevoDiagrama={manejarNuevoDiagrama}

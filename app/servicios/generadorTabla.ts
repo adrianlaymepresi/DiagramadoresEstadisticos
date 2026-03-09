@@ -1,9 +1,9 @@
 import { FilaDatos } from '../tipos';
 
-export const crearFilaVacia = (incluirColor: boolean): FilaDatos => ({
-  x: 0,
-  y: 0,
-  tamanio: 0,
+export const crearFilaVacia = (incluirColor: boolean, indice: number): FilaDatos => ({
+  x: (indice + 1) * 10,
+  y: (indice + 1) * 10,
+  tamanio: (indice + 1) * 5,
   ...(incluirColor && { color: '#8B5CF6' }),
 });
 
@@ -11,7 +11,7 @@ export const crearFilasVacias = (
   numeroFilas: number,
   incluirColor: boolean
 ): FilaDatos[] => {
-  return Array.from({ length: numeroFilas }, () => crearFilaVacia(incluirColor));
+  return Array.from({ length: numeroFilas }, (_, i) => crearFilaVacia(incluirColor, i));
 };
 
 export const actualizarFila = (

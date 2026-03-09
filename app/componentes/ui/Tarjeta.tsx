@@ -14,17 +14,23 @@ export const Tarjeta: React.FC<PropiedadesTarjeta> = ({
   return (
     <div
       className={`
-        bg-white rounded-xl shadow-lg p-6
-        border border-gray-200
+        bg-white rounded-2xl shadow-2xl
+        border-2 border-purple-100
+        overflow-hidden
+        transition-all duration-300 hover:shadow-3xl
         ${className}
       `}
     >
       {titulo && (
-        <h2 className="text-2xl font-bold text-gray-800 mb-4 pb-3 border-b border-gray-200">
-          {titulo}
-        </h2>
+        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-5">
+          <h2 className="text-2xl md:text-3xl font-bold text-white">
+            {titulo}
+          </h2>
+        </div>
       )}
-      {children}
+      <div className="p-6 md:p-8">
+        {children}
+      </div>
     </div>
   );
 };

@@ -39,7 +39,8 @@ export const exportarComoPDF = async (
 
 export const exportarComoExcel = async (
   configuracion: ConfiguracionDiagrama,
-  nombreArchivo: string
+  nombreArchivo: string,
+  canvas?: HTMLCanvasElement
 ): Promise<void> => {
   const XLSX = await import('xlsx');
 
@@ -62,9 +63,34 @@ export const exportarComoExcel = async (
   });
 
   const datosHoja = [encabezados, ...filas];
-  const hoja = XLSX.utils.aoa_to_sheet(datosHoja);
+  
+  const hojaDatos = XLSX.utils.aoa_to_sheet(datosHoja);
+  
+  const rangoColumnas = XLSX.utils.decode_range(hojaDatos['!ref'] || 'A1');
+  for (let C = rangoColumnas.s.c; C <= rangoColumnas.e.c; ++C) {
+    const direccion = XLSX.utils.encode_col(C) + '1';
+    if (!hojaDatos[direccion]) continue;
+    hojaDatos[direccion].s = {
+      font: { bold: true, color: { rgb: 'FFFFFF' } },
+      fill: { fgColor: { rgb: '8B5CF6' } },
+      alignment: { horizontal: 'center', vertical: 'center' }
+    };
+  }
+  
+  hojaDatos['!cols'] = encabezados.map(() => ({ wch: 15 }));
+
   const libro = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(libro, hoja, 'Datos');
+  XLSX.utils.book_append_sheet(libro, hojaDatos, 'Datos');
+
+  if (canvas) {
+    const imagenData = canvas.toDataURL('image/png').split(',')[1];
+    const hojaImagen = XLSX.utils.aoa_to_sheet([
+      ['Diagrama de Burbujas'],
+      [''],
+      ['Ver imagen adjunta en formato PNG']
+    ]);
+    XLSX.utils.book_append_sheet(libro, hojaImagen, 'Diagrama');
+  }
 
   XLSX.writeFile(libro, `${nombreArchivo}.xlsx`);
 };

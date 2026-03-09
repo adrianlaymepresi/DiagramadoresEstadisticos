@@ -7,6 +7,7 @@ interface PropiedadesBoton {
   variante?: 'primario' | 'secundario' | 'outline';
   deshabilitado?: boolean;
   ancho?: 'auto' | 'completo';
+  className?: string;
 }
 
 export const Boton: React.FC<PropiedadesBoton> = ({
@@ -16,12 +17,15 @@ export const Boton: React.FC<PropiedadesBoton> = ({
   variante = 'primario',
   deshabilitado = false,
   ancho = 'auto',
+  className = '',
 }) => {
   const estilosBase = `
-    px-6 py-3 rounded-lg font-medium
+    px-6 py-3 rounded-xl font-semibold text-base
     transition-all duration-300 ease-in-out
-    focus:outline-none focus:ring-2 focus:ring-offset-2
+    focus:outline-none focus:ring-4 focus:ring-offset-2
     disabled:opacity-50 disabled:cursor-not-allowed
+    transform hover:scale-105 active:scale-95
+    shadow-lg hover:shadow-xl
   `;
 
   const estilosVariante = {
@@ -48,7 +52,7 @@ export const Boton: React.FC<PropiedadesBoton> = ({
       type={tipo}
       onClick={onClick}
       disabled={deshabilitado}
-      className={`${estilosBase} ${estilosVariante[variante]} ${estilosAncho}`}
+      className={`${estilosBase} ${estilosVariante[variante]} ${estilosAncho} ${className}`}
     >
       {children}
     </button>
