@@ -233,13 +233,48 @@ const formatearNumeroEje = (valor: number): string => {
   return valor.toExponential(1);
 };
 
+// Calcular ticks inteligentes basados en datos reales
+const calcularTicksInteligentes = (
+  datos: FilaDatos[],
+  campo: 'x' | 'y',
+  minRango: number,
+  maxRango: number
+): number[] => {
+  // Obtener valores únicos ordenados
+  const valoresUnicos = [...new Set(datos.map(d => d[campo]))].sort((a, b) => a - b);
+  
+  // Siempre incluir min y max del rango
+  const ticks = new Set<number>([minRango, maxRango]);
+  
+  // Agregar valores reales de los datos
+  valoresUnicos.forEach(v => ticks.add(v));
+  
+  const ticksArray = Array.from(ticks).sort((a, b) => a - b);
+  
+  // Si hay demasiados ticks (>10), reducir mostrando valores representativos
+  if (ticksArray.length > 10) {
+    const ticksReducidos = [ticksArray[0]]; // Mínimo
+    const paso = Math.floor(ticksArray.length / 8);
+    
+    for (let i = paso; i < ticksArray.length - 1; i += paso) {
+      ticksReducidos.push(ticksArray[i]);
+    }
+    
+    ticksReducidos.push(ticksArray[ticksArray.length - 1]); // Máximo
+    return ticksReducidos;
+  }
+  
+  return ticksArray;
+};
+
 const dibujarEjes = (
   ctx: CanvasRenderingContext2D,
   anchoCanvas: number,
   altoCanvas: number,
   margen: number,
   rangos: RangosEscala,
-  columnas: ConfiguracionColumnas
+  columnas: ConfiguracionColumnas,
+  datos: FilaDatos[]
 ): void => {
   // Ejes principales
   ctx.strokeStyle = '#475569';
@@ -266,42 +301,46 @@ const dibujarEjes = (
 
   ctx.fillText(columnas.nombreX, anchoCanvas / 2, altoCanvas - 20);
 
-  // Valores de ejes
-  const pasos = 10;
+  // Calcular ticks basados en datos reales
+  const ticksX = calcularTicksInteligentes(datos, 'x', rangos.minX, rangos.maxX);
+  const ticksY = calcularTicksInteligentes(datos, 'y', rangos.minY, rangos.maxY);
+
+  // Dibujar ticks y valores del eje X
   ctx.font = '11px sans-serif';
   ctx.fillStyle = '#64748B';
 
-  for (let i = 0; i <= pasos; i++) {
-    const valorX = rangos.minX + (rangos.maxX - rangos.minX) * (i / pasos);
-    const x = margen + ((anchoCanvas - 2 * margen) * i) / pasos;
+  ticksX.forEach((valorX) => {
+    const proporcion = (valorX - rangos.minX) / (rangos.maxX - rangos.minX);
+    const x = margen + (anchoCanvas - 2 * margen) * proporcion;
+    
     ctx.textAlign = 'center';
     ctx.fillText(formatearNumeroEje(valorX), x, altoCanvas - margen + 18);
     
-    if (i > 0 && i < pasos) {
-      ctx.beginPath();
-      ctx.moveTo(x, altoCanvas - margen);
-      ctx.lineTo(x, altoCanvas - margen + 4);
-      ctx.strokeStyle = '#94A3B8';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-    }
-  }
+    // Tick mark
+    ctx.beginPath();
+    ctx.moveTo(x, altoCanvas - margen);
+    ctx.lineTo(x, altoCanvas - margen + 5);
+    ctx.strokeStyle = '#94A3B8';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  });
 
-  for (let i = 0; i <= pasos; i++) {
-    const valorY = rangos.minY + (rangos.maxY - rangos.minY) * (i / pasos);
-    const y = altoCanvas - margen - ((altoCanvas - 2 * margen) * i) / pasos;
+  // Dibujar ticks y valores del eje Y
+  ticksY.forEach((valorY) => {
+    const proporcion = (valorY - rangos.minY) / (rangos.maxY - rangos.minY);
+    const y = altoCanvas - margen - (altoCanvas - 2 * margen) * proporcion;
+    
     ctx.textAlign = 'right';
     ctx.fillText(formatearNumeroEje(valorY), margen - 8, y + 4);
     
-    if (i > 0 && i < pasos) {
-      ctx.beginPath();
-      ctx.moveTo(margen - 4, y);
-      ctx.lineTo(margen, y);
-      ctx.strokeStyle = '#94A3B8';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-    }
-  }
+    // Tick mark
+    ctx.beginPath();
+    ctx.moveTo(margen - 5, y);
+    ctx.lineTo(margen, y);
+    ctx.strokeStyle = '#94A3B8';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  });
 };
 
 
@@ -374,7 +413,7 @@ export const dibujarDiagrama = (
   const rangos = calcularRangos(datos);
   
   dibujarCuadricula(ctx, anchoCanvas, altoCanvas, margen, rangos);
-  dibujarEjes(ctx, anchoCanvas, altoCanvas, margen, rangos, columnas);
+  dibujarEjes(ctx, anchoCanvas, altoCanvas, margen, rangos, columnas, datos);
 
   const burbujas = calcularDatosBurbujas(datos, anchoCanvas, altoCanvas, margen);
 
