@@ -1,11 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Tarjeta } from './ui/Tarjeta';
-import { Boton } from './ui/Boton';
 import { FilaDatos, ConfiguracionColumnas } from '../tipos';
 import { actualizarFila, crearFilasVacias } from '../servicios/generadorTabla';
-import { parsearDatosTabla, validarValorNumerico } from '../utilidades/validaciones';
+import { parsearDatosTabla, validarFilaDiagramaBurbuja } from '../utilidades/validaciones';
 
 interface PropiedadesEditorTabla {
   numeroFilas: number;
@@ -21,6 +19,7 @@ export const EditorTabla: React.FC<PropiedadesEditorTabla> = ({
   alVolver,
 }) => {
   const [filas, setFilas] = useState<FilaDatos[]>([]);
+  const [erroresFilas, setErroresFilas] = useState<Record<number, string[]>>({});
 
   useEffect(() => {
     setFilas(crearFilasVacias(numeroFilas, !!columnas.nombreColor));
@@ -31,11 +30,37 @@ export const EditorTabla: React.FC<PropiedadesEditorTabla> = ({
     campo: keyof FilaDatos,
     valor: string
   ) => {
+    const nuevasFilas = [...filas];
+    
     if (campo === 'color') {
-      setFilas(actualizarFila(filas, indice, campo, valor));
+      nuevasFilas[indice] = {
+        ...nuevasFilas[indice],
+        [campo]: valor,
+      };
     } else {
-      const valorNumerico = parseFloat(valor) || 0;
-      setFilas(actualizarFila(filas, indice, campo, valorNumerico));
+      const valorNumerico = parseFloat(valor);
+      nuevasFilas[indice] = {
+        ...nuevasFilas[indice],
+        [campo]: isNaN(valorNumerico) ? 0 : valorNumerico,
+      };
+    }
+    
+    setFilas(nuevasFilas);
+    
+    const { valido, errores } = validarFilaDiagramaBurbuja(
+      nuevasFilas[indice].x,
+      nuevasFilas[indice].y,
+      nuevasFilas[indice].tamanio
+    );
+    
+    if (!valido) {
+      setErroresFilas(prev => ({ ...prev, [indice]: errores }));
+    } else {
+      setErroresFilas(prev => {
+        const nuevo = { ...prev };
+        delete nuevo[indice];
+        return nuevo;
+      });
     }
   };
 
@@ -48,14 +73,17 @@ export const EditorTabla: React.FC<PropiedadesEditorTabla> = ({
     datosParsedos.forEach((fila, indice) => {
       if (indice >= nuevasFilas.length) return;
 
-      if (fila[0] && validarValorNumerico(fila[0])) {
-        nuevasFilas[indice].x = parseFloat(fila[0]);
+      if (fila[0]) {
+        const x = parseFloat(fila[0]);
+        if (!isNaN(x)) nuevasFilas[indice].x = x;
       }
-      if (fila[1] && validarValorNumerico(fila[1])) {
-        nuevasFilas[indice].y = parseFloat(fila[1]);
+      if (fila[1]) {
+        const y = parseFloat(fila[1]);
+        if (!isNaN(y)) nuevasFilas[indice].y = y;
       }
-      if (fila[2] && validarValorNumerico(fila[2])) {
-        nuevasFilas[indice].tamanio = parseFloat(fila[2]);
+      if (fila[2]) {
+        const tamanio = parseFloat(fila[2]);
+        if (!isNaN(tamanio)) nuevasFilas[indice].tamanio = tamanio;
       }
       if (fila[3] && columnas.nombreColor) {
         nuevasFilas[indice].color = fila[3];
@@ -65,136 +93,152 @@ export const EditorTabla: React.FC<PropiedadesEditorTabla> = ({
     setFilas(nuevasFilas);
   };
 
-  const validarDatos = (): boolean => {
-    return filas.every(
-      (fila) =>
-        validarValorNumerico(String(fila.x)) &&
-        validarValorNumerico(String(fila.y)) &&
-        validarValorNumerico(String(fila.tamanio)) &&
-        fila.tamanio > 0
-    );
+  const validarTodosDatos = (): boolean => {
+    let todosValidos = true;
+    const nuevosErrores: Record<number, string[]> = {};
+    
+    filas.forEach((fila, indice) => {
+      const { valido, errores } = validarFilaDiagramaBurbuja(fila.x, fila.y, fila.tamanio);
+      if (!valido) {
+        todosValidos = false;
+        nuevosErrores[indice] = errores;
+      }
+    });
+    
+    setErroresFilas(nuevosErrores);
+    return todosValidos;
   };
 
   const manejarGenerar = () => {
-    if (!validarDatos()) {
-      alert('Por favor, complete todos los campos con valores numéricos válidos.');
+    if (!validarTodosDatos()) {
+      alert('Por favor, corrija los errores en los datos antes de continuar.');
       return;
     }
     alConfirmar(filas);
   };
 
   return (
-    <Tarjeta titulo="Ingresar Datos">
-      <div className="space-y-8">
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-8 rounded-2xl border-2 border-blue-200">
-          <div className="flex items-start gap-4">
-            <span className="text-3xl">💡</span>
-            <p className="text-base md:text-lg text-gray-700 flex-1 leading-relaxed">
-              Puede copiar datos desde <span className="font-bold">Excel</span> o <span className="font-bold">Word</span> y pegarlos directamente en la tabla.
-            </p>
-          </div>
+    <div className="w-full max-w-6xl mx-auto">
+      <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6 md:p-8">
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Ingresar Datos del Diagrama</h2>
+          <p className="text-gray-600 text-sm">
+            Complete los valores para cada burbuja. Puede copiar y pegar desde <strong>Excel</strong>.
+          </p>
         </div>
 
-        <div className="bg-white rounded-2xl border-2 border-gray-200 overflow-hidden shadow-lg">
-          <div className="overflow-x-auto">
-            <table
-              className="w-full border-collapse min-w-[700px]"
-              onPaste={manejarPegado}
-            >
-              <thead>
-                <tr className="bg-gradient-to-r from-purple-600 to-indigo-600">
-                  <th className="px-6 py-5 text-center font-bold text-white border-r border-purple-500 w-20 text-lg">
-                    #
+        <div className="overflow-x-auto mb-6 rounded-lg border-2 border-gray-200">
+          <table
+            className="w-full border-collapse min-w-[700px]"
+            onPaste={manejarPegado}
+          >
+            <thead>
+              <tr className="bg-gradient-to-r from-purple-600 to-indigo-600">
+                <th className="px-4 py-3 text-center font-bold text-white border-r border-purple-500 text-sm">
+                  #
+                </th>
+                <th className="px-4 py-3 text-left font-bold text-white border-r border-purple-500 text-sm">
+                  {columnas.nombreX} *
+                </th>
+                <th className="px-4 py-3 text-left font-bold text-white border-r border-purple-500 text-sm">
+                  {columnas.nombreY} *
+                </th>
+                <th className="px-4 py-3 text-left font-bold text-white border-r border-purple-500 text-sm">
+                  {columnas.nombreTamanio} *
+                </th>
+                {columnas.nombreColor && (
+                  <th className="px-4 py-3 text-center font-bold text-white text-sm">
+                    {columnas.nombreColor}
                   </th>
-                  <th className="px-6 py-5 text-left font-bold text-white border-r border-purple-500 text-lg">
-                    {columnas.nombreX}
-                  </th>
-                  <th className="px-6 py-5 text-left font-bold text-white border-r border-purple-500 text-lg">
-                    {columnas.nombreY}
-                  </th>
-                  <th className="px-6 py-5 text-left font-bold text-white border-r border-purple-500 text-lg">
-                    {columnas.nombreTamanio}
-                  </th>
-                  {columnas.nombreColor && (
-                    <th className="px-6 py-5 text-center font-bold text-white text-lg">
-                      {columnas.nombreColor}
-                    </th>
-                  )}
-                </tr>
-              </thead>
-              <tbody>
-                {filas.map((fila, indice) => (
-                  <tr
-                    key={indice}
-                    className={`
-                      transition-all duration-200
-                      ${indice % 2 === 0 ? 'bg-gray-50' : 'bg-white'}
-                      hover:bg-purple-50
-                    `}
-                  >
-                    <td className="px-6 py-4 border border-gray-200 font-bold text-purple-600 text-center text-lg">
+                )}
+              </tr>
+            </thead>
+            <tbody>
+              {filas.map((fila, indice) => (
+                <React.Fragment key={indice}>
+                  <tr className={`${indice % 2 === 0 ? 'bg-gray-50' : 'bg-white'} hover:bg-purple-50 transition-colors`}>
+                    <td className="px-4 py-3 text-center font-bold text-purple-600 border border-gray-200 text-base">
                       {indice + 1}
                     </td>
-                    <td className="px-6 py-4 border border-gray-200">
+                    <td className="px-4 py-3 border border-gray-200">
                       <input
                         type="number"
-                        value={fila.x || ''}
+                        value={fila.x}
                         onChange={(e) => manejarCambio(indice, 'x', e.target.value)}
                         step="any"
-                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all text-base"
+                        className="w-full px-3 py-2 text-sm border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none transition-all"
                       />
                     </td>
-                    <td className="px-6 py-4 border border-gray-200">
+                    <td className="px-4 py-3 border border-gray-200">
                       <input
                         type="number"
-                        value={fila.y || ''}
+                        value={fila.y}
                         onChange={(e) => manejarCambio(indice, 'y', e.target.value)}
                         step="any"
-                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all text-base"
+                        className="w-full px-3 py-2 text-sm border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none transition-all"
                       />
                     </td>
-                    <td className="px-6 py-4 border border-gray-200">
+                    <td className="px-4 py-3 border border-gray-200">
                       <input
                         type="number"
-                        value={fila.tamanio || ''}
+                        value={fila.tamanio}
                         onChange={(e) => manejarCambio(indice, 'tamanio', e.target.value)}
                         step="any"
-                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all text-base"
+                        min="0"
+                        className="w-full px-3 py-2 text-sm border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none transition-all"
                       />
                     </td>
                     {columnas.nombreColor && (
-                      <td className="px-6 py-4 border border-gray-200">
-                        <div className="flex items-center justify-center gap-3">
+                      <td className="px-4 py-3 border border-gray-200">
+                        <div className="flex items-center gap-2">
                           <input
                             type="color"
-                            value={fila.color || '#8B5CF6'}
+                            value={fila.color?.startsWith('#') ? fila.color : '#8B5CF6'}
                             onChange={(e) => manejarCambio(indice, 'color', e.target.value)}
-                            className="w-14 h-14 cursor-pointer rounded-lg border-2 border-gray-300"
+                            className="w-12 h-12 rounded border-2 border-gray-300 cursor-pointer"
                           />
-                          <span className="text-sm text-gray-600 font-mono bg-gray-100 px-3 py-2 rounded-lg">
-                            {fila.color || '#8B5CF6'}
-                          </span>
+                          <input
+                            type="text"
+                            value={fila.color || ''}
+                            onChange={(e) => manejarCambio(indice, 'color', e.target.value)}
+                            placeholder="color/categoría"
+                            className="flex-1 px-3 py-2 text-xs border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none transition-all"
+                          />
                         </div>
                       </td>
                     )}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                  {erroresFilas[indice] && (
+                    <tr>
+                      <td></td>
+                      <td colSpan={columnas.nombreColor ? 4 : 3} className="px-6 py-2 bg-red-50">
+                        {erroresFilas[indice].map((error, idx) => (
+                          <p key={idx} className="text-sm text-red-600 font-medium">{error}</p>
+                        ))}
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              ))}
+            </tbody>
+          </table>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-6 pt-6">
-          <Boton onClick={alVolver} variante="outline" ancho="auto" className="text-lg px-8 py-4">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <button
+            onClick={alVolver}
+            className="px-6 py-3 text-base font-semibold text-purple-600 bg-white border-2 border-purple-600 rounded-lg hover:bg-purple-50 transition-colors duration-200"
+          >
             ← Volver
-          </Boton>
-          <div className="flex-1">
-            <Boton onClick={manejarGenerar} variante="primario" ancho="completo" className="text-lg px-8 py-4">
-              Generar Diagrama →
-            </Boton>
-          </div>
+          </button>
+          <button
+            onClick={manejarGenerar}
+            className="flex-1 px-6 py-3 text-base font-bold text-white bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-colors duration-200 shadow-md"
+          >
+            Generar Diagrama →
+          </button>
         </div>
       </div>
-    </Tarjeta>
+    </div>
   );
 };

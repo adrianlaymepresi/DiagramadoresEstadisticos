@@ -1,10 +1,8 @@
 'use client';
 
 import React, { useRef, useEffect, useState } from 'react';
-import { Tarjeta } from './ui/Tarjeta';
-import { Boton } from './ui/Boton';
 import { ConfiguracionDiagrama, FormatoExportacion } from '../tipos';
-import { dibujarDiagrama } from '../servicios/generadorDiagrama';
+import { dibujarDiagrama, calcularDatosBurbujas } from '../servicios/generadorDiagrama';
 import {
   exportarComoImagen,
   exportarComoPDF,
@@ -18,6 +16,16 @@ interface PropiedadesVisualizadorDiagrama {
   alGuardar: (configuracion: ConfiguracionDiagrama) => void;
 }
 
+interface InfoTooltip {
+  visible: boolean;
+  x: number;
+  y: number;
+  valorX: number;
+  valorY: number;
+  valorTamanio: number;
+  valorColor?: string;
+}
+
 export const VisualizadorDiagrama: React.FC<PropiedadesVisualizadorDiagrama> = ({
   configuracion,
   alNuevoDiagrama,
@@ -25,13 +33,14 @@ export const VisualizadorDiagrama: React.FC<PropiedadesVisualizadorDiagrama> = (
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const contenedorRef = useRef<HTMLDivElement>(null);
-  const [dimensionesCanvas, setDimensionesCanvas] = useState({ ancho: 1200, alto: 800 });
+  const [dimensionesCanvas, setDimensionesCanvas] = useState({ ancho: 1200, alto: 750 });
+  const [tooltip, setTooltip] = useState<InfoTooltip>({ visible: false, x: 0, y: 0, valorX: 0, valorY: 0, valorTamanio: 0 });
 
   useEffect(() => {
     const actualizarDimensiones = () => {
       if (contenedorRef.current) {
-        const ancho = contenedorRef.current.offsetWidth - 40;
-        const alto = ancho * 0.6;
+        const ancho = contenedorRef.current.offsetWidth - 32;
+        const alto = ancho * 0.625; // Proporción 16:10
         setDimensionesCanvas({ ancho, alto });
       }
     };
@@ -49,6 +58,51 @@ export const VisualizadorDiagrama: React.FC<PropiedadesVisualizadorDiagrama> = (
       dibujarDiagrama(canvas, configuracion.datos, configuracion.configuracionColumnas);
     }
   }, [configuracion, dimensionesCanvas]);
+
+  const manejarMovimientoMouse = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!canvasRef.current) return;
+
+    const rect = canvasRef.current.getBoundingClientRect();
+    const scaleX = canvasRef.current.width / rect.width;
+    const scaleY = canvasRef.current.height / rect.height;
+    
+    const mouseX = (e.clientX - rect.left) * scaleX;
+    const mouseY = (e.clientY - rect.top) * scaleY;
+
+    const margen = 90;
+    const burbujas = calcularDatosBurbujas(
+      configuracion.datos,
+      dimensionesCanvas.ancho,
+      dimensionesCanvas.alto,
+      margen
+    );
+
+    // Encontrar burbuja bajo el cursor
+    const burbajaDetectada = burbujas.find((burbuja) => {
+      const distancia = Math.sqrt(
+        Math.pow(mouseX - burbuja.x, 2) + Math.pow(mouseY - burbuja.y, 2)
+      );
+      return distancia <= burbuja.radio;
+    });
+
+    if (burbajaDetectada) {
+      setTooltip({
+        visible: true,
+        x: e.clientX,
+        y: e.clientY,
+        valorX: burbajaDetectada.valorX,
+        valorY: burbajaDetectada.valorY,
+        valorTamanio: burbajaDetectada.valorTamanio,
+        valorColor: burbajaDetectada.valorColor,
+      });
+    } else {
+      setTooltip({ ...tooltip, visible: false });
+    }
+  };
+
+  const manejarSalidaMouse = () => {
+    setTooltip({ ...tooltip, visible: false });
+  };
 
   const manejarExportacion = async (formato: FormatoExportacion) => {
     if (!canvasRef.current) return;
@@ -81,58 +135,83 @@ export const VisualizadorDiagrama: React.FC<PropiedadesVisualizadorDiagrama> = (
   };
 
   return (
-    <Tarjeta titulo="Diagrama de Burbujas Generado">
-      <div className="space-y-8">
+    <div className="w-full max-w-6xl mx-auto">
+      <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6 md:p-8">
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Diagrama de Burbujas</h2>
+          <p className="text-gray-600 text-sm">
+            Pase el cursor sobre las burbujas para ver información detallada
+          </p>
+        </div>
+
         <div 
           ref={contenedorRef}
-          className="bg-white rounded-2xl border-4 border-gray-200 p-6 shadow-inner overflow-hidden"
+          className="bg-gray-50 rounded-xl border-2 border-gray-200 p-4 mb-6 relative"
+          style={{ position: 'relative' }}
         >
           <canvas
             ref={canvasRef}
-            className="w-full h-auto"
+            onMouseMove={manejarMovimientoMouse}
+            onMouseLeave={manejarSalidaMouse}
+            className="w-full h-auto cursor-crosshair"
             style={{ maxWidth: '100%', height: 'auto' }}
           />
+          
+          {/* Tooltip flotante */}
+          {tooltip.visible && (
+            <div
+              className="fixed z-50 bg-gray-900 text-white px-3 py-2 rounded-lg shadow-xl text-xs pointer-events-none"
+              style={{
+                left: tooltip.x + 15,
+                top: tooltip.y - 10,
+                transform: 'translateY(-100%)',
+              }}
+            >
+              <div className="font-semibold mb-1">{configuracion.configuracionColumnas.nombreTamanio}</div>
+              <div><strong>{configuracion.configuracionColumnas.nombreX}:</strong> {tooltip.valorX.toFixed(2)}</div>
+              <div><strong>{configuracion.configuracionColumnas.nombreY}:</strong> {tooltip.valorY.toFixed(2)}</div>
+              <div><strong>Tamaño:</strong> {tooltip.valorTamanio.toFixed(2)}</div>
+              {tooltip.valorColor && configuracion.configuracionColumnas.nombreColor && (
+                <div><strong>{configuracion.configuracionColumnas.nombreColor}:</strong> {tooltip.valorColor}</div>
+              )}
+            </div>
+          )}
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Boton
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+          <button
             onClick={() => manejarExportacion('imagen')}
-            variante="secundario"
-            ancho="completo"
-            className="text-lg px-6 py-4"
+            className="px-4 py-3 text-sm font-semibold text-white bg-blue-500 rounded-lg hover:bg-blue-600 transition-colors duration-200 shadow-sm hover:shadow"
           >
             📥 PNG
-          </Boton>
-          <Boton
+          </button>
+          <button
             onClick={() => manejarExportacion('pdf')}
-            variante="secundario"
-            ancho="completo"
-            className="text-lg px-6 py-4"
+            className="px-4 py-3 text-sm font-semibold text-white bg-red-500 rounded-lg hover:bg-red-600 transition-colors duration-200 shadow-sm hover:shadow"
           >
             📄 PDF
-          </Boton>
-          <Boton
+          </button>
+          <button
             onClick={() => manejarExportacion('excel')}
-            variante="secundario"
-            ancho="completo"
-            className="text-lg px-6 py-4"
+            className="px-4 py-3 text-sm font-semibold text-white bg-green-500 rounded-lg hover:bg-green-600 transition-colors duration-200 shadow-sm hover:shadow"
           >
             📊 Excel
-          </Boton>
-          <Boton
+          </button>
+          <button
             onClick={manejarGuardar}
-            variante="primario"
-            ancho="completo"
-            className="text-lg px-6 py-4"
+            className="px-4 py-3 text-sm font-semibold text-white bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-colors duration-200 shadow-sm hover:shadow"
           >
             💾 Guardar
-          </Boton>
+          </button>
         </div>
 
-        <Boton onClick={alNuevoDiagrama} variante="outline" ancho="completo" className="text-lg px-8 py-4">
+        <button
+          onClick={alNuevoDiagrama}
+          className="w-full px-6 py-3 text-base font-semibold text-purple-600 bg-white border-2 border-purple-600 rounded-lg hover:bg-purple-50 transition-colors duration-200"
+        >
           ← Crear Nuevo Diagrama
-        </Boton>
+        </button>
       </div>
-    </Tarjeta>
+    </div>
   );
 };

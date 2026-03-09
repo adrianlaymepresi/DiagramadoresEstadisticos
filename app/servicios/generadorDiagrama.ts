@@ -21,23 +21,31 @@ export const calcularRangos = (datos: FilaDatos[]): RangosEscala => {
   let minTamanio = Math.min(...valoresTamanio);
   let maxTamanio = Math.max(...valoresTamanio);
 
+  // Manejar caso cuando todos los valores son iguales
   if (maxX === minX) {
-    minX = minX - 5;
-    maxX = maxX + 5;
+    const base = minX === 0 ? 1 : Math.abs(minX) * 0.1;
+    minX = minX - base;
+    maxX = maxX + base;
   }
   if (maxY === minY) {
-    minY = minY - 5;
-    maxY = maxY + 5;
+    const base = minY === 0 ? 1 : Math.abs(minY) * 0.1;
+    minY = minY - base;
+    maxY = maxY + base;
   }
   if (maxTamanio === minTamanio) {
-    minTamanio = Math.max(1, minTamanio - 1);
+    minTamanio = Math.max(0, minTamanio - 1);
     maxTamanio = maxTamanio + 1;
   }
 
+  // Padding adaptativo: 15% para datos normales, más para rangos muy pequeños
   const rangoX = maxX - minX;
   const rangoY = maxY - minY;
-  const margenX = rangoX * 0.1;
-  const margenY = rangoY * 0.1;
+  
+  const porcentajePaddingX = rangoX < 10 ? 0.2 : 0.15;
+  const porcentajePaddingY = rangoY < 10 ? 0.2 : 0.15;
+  
+  const margenX = rangoX * porcentajePaddingX;
+  const margenY = rangoY * porcentajePaddingY;
 
   return {
     minX: minX - margenX,
@@ -67,12 +75,85 @@ export const generarColoresDefault = (cantidad: number): string[] => {
   return Array.from({ length: cantidad }, (_, i) => colores[i % colores.length]);
 };
 
+const MAPA_COLORES_CATEGORIAS: Record<string, string> = {
+  sube: '#10B981',
+  subida: '#10B981',
+  alto: '#10B981',
+  positivo: '#10B981',
+  arriba: '#10B981',
+  baja: '#EF4444',
+  bajada: '#EF4444',
+  bajo: '#EF4444',
+  negativo: '#EF4444',
+  abajo: '#EF4444',
+  estable: '#6B7280',
+  neutro: '#6B7280',
+  medio: '#F59E0B',
+  moderado: '#F59E0B',
+  verde: '#10B981',
+  rojo: '#EF4444',
+  azul: '#3B82F6',
+  amarillo: '#F59E0B',
+  morado: '#8B5CF6',
+};
+
+const esColorCSSValido = (color: string): boolean => {
+  const trimmed = color.trim().toLowerCase();
+  if (/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(trimmed)) return true;
+  if (/^rgb\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*\)$/.test(trimmed)) return true;
+  if (/^rgba\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*[\d.]+\s*\)$/.test(trimmed)) return true;
+  const coloresCSS = ['red', 'green', 'blue', 'yellow', 'purple', 'orange', 'pink', 'cyan', 'magenta', 'black', 'white', 'gray', 'brown'];
+  return coloresCSS.includes(trimmed);
+};
+
+export const resolverColorBurbuja = (valorColor: string | undefined, colorDefault: string): string => {
+  if (!valorColor || valorColor.trim() === '') return colorDefault;
+  
+  const valor = valorColor.trim().toLowerCase();
+  
+  if (esColorCSSValido(valorColor)) return valorColor;
+  
+  if (MAPA_COLORES_CATEGORIAS[valor]) return MAPA_COLORES_CATEGORIAS[valor];
+  
+  return colorDefault;
+};
+
+// Calcular radios dinámicos basados en el tamaño del canvas
+export const calcularRadiosDinamicos = (anchoCanvas: number, altoCanvas: number): { min: number; max: number } => {
+  const areaUtil = Math.min(anchoCanvas, altoCanvas) - 180; // Descontar márgenes
+  const radioMin = Math.max(6, areaUtil * 0.01); // 1% del área útil, mínimo 6px
+  const radioMax = Math.min(60, areaUtil * 0.08); // 8% del área útil, máximo 60px
+  
+  return { min: radioMin, max: radioMax };
+};
+
+export const calcularRadioVisualBurbuja = (
+  tamanio: number,
+  tamanioMaximo: number,
+  radioMinimo: number,
+  radioMaximo: number
+): number => {
+  if (tamanioMaximo === 0) return radioMinimo;
+  
+  if (tamanio <= 0) return radioMinimo;
+  
+  const tamanioNormalizado = tamanio / tamanioMaximo;
+  
+  // Escalado con raíz cuadrada para representación proporcional al área
+  const radioVisual = radioMinimo + Math.sqrt(tamanioNormalizado) * (radioMaximo - radioMinimo);
+  
+  return Math.max(radioMinimo, Math.min(radioMaximo, radioVisual));
+};
+
 interface DatosBurbuja {
   x: number;
   y: number;
   radio: number;
   color: string;
-  etiqueta: string;
+  valorX: number;
+  valorY: number;
+  valorTamanio: number;
+  valorColor?: string;
 }
 
 export const calcularDatosBurbujas = (
@@ -83,21 +164,30 @@ export const calcularDatosBurbujas = (
 ): DatosBurbuja[] => {
   const rangos = calcularRangos(datos);
   const coloresDefault = generarColoresDefault(datos.length);
+  const { min: radioMin, max: radioMax } = calcularRadiosDinamicos(anchoCanvas, altoCanvas);
 
   const anchoUtil = anchoCanvas - 2 * margen;
   const altoUtil = altoCanvas - 2 * margen;
+  
+  const tamanioMaximo = Math.max(...datos.map(d => d.tamanio));
 
   return datos.map((fila, indice) => {
     const x = escalarValor(fila.x, rangos.minX, rangos.maxX, [margen, margen + anchoUtil]);
     const y = escalarValor(fila.y, rangos.minY, rangos.maxY, [margen + altoUtil, margen]);
-    const radio = escalarValor(fila.tamanio, rangos.minTamanio, rangos.maxTamanio, [15, 80]);
+    
+    const radio = calcularRadioVisualBurbuja(fila.tamanio, tamanioMaximo, radioMin, radioMax);
+    
+    const colorFinal = resolverColorBurbuja(fila.color, coloresDefault[indice]);
 
     return {
       x,
       y,
       radio,
-      color: fila.color || coloresDefault[indice],
-      etiqueta: `(${fila.x}, ${fila.y})`,
+      color: colorFinal,
+      valorX: fila.x,
+      valorY: fila.y,
+      valorTamanio: fila.tamanio,
+      valorColor: fila.color,
     };
   });
 };
@@ -130,6 +220,19 @@ const dibujarCuadricula = (
   }
 };
 
+// Formatear números de forma inteligente para los ejes
+const formatearNumeroEje = (valor: number): string => {
+  const absValor = Math.abs(valor);
+  
+  if (absValor === 0) return '0';
+  if (absValor >= 1000000) return (valor / 1000000).toFixed(1) + 'M';
+  if (absValor >= 1000) return (valor / 1000).toFixed(1) + 'K';
+  if (absValor >= 100) return valor.toFixed(0);
+  if (absValor >= 1) return valor.toFixed(1);
+  if (absValor >= 0.01) return valor.toFixed(2);
+  return valor.toExponential(1);
+};
+
 const dibujarEjes = (
   ctx: CanvasRenderingContext2D,
   anchoCanvas: number,
@@ -138,7 +241,8 @@ const dibujarEjes = (
   rangos: RangosEscala,
   columnas: ConfiguracionColumnas
 ): void => {
-  ctx.strokeStyle = '#64748B';
+  // Ejes principales
+  ctx.strokeStyle = '#475569';
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(margen, margen);
@@ -146,35 +250,38 @@ const dibujarEjes = (
   ctx.lineTo(anchoCanvas - margen, altoCanvas - margen);
   ctx.stroke();
 
+  // Título del diagrama
   ctx.fillStyle = '#1E293B';
-  ctx.font = 'bold 28px sans-serif';
+  ctx.font = 'bold 20px sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText(columnas.nombreTamanio, anchoCanvas / 2, 50);
+  ctx.fillText(`Diagrama de Burbujas: ${columnas.nombreTamanio}`, anchoCanvas / 2, 35);
 
-  ctx.font = 'bold 18px sans-serif';
+  // Etiquetas de ejes
+  ctx.font = 'bold 14px sans-serif';
   ctx.save();
-  ctx.translate(30, altoCanvas / 2);
+  ctx.translate(25, altoCanvas / 2);
   ctx.rotate(-Math.PI / 2);
   ctx.fillText(columnas.nombreY, 0, 0);
   ctx.restore();
 
-  ctx.fillText(columnas.nombreX, anchoCanvas / 2, altoCanvas - 30);
+  ctx.fillText(columnas.nombreX, anchoCanvas / 2, altoCanvas - 20);
 
+  // Valores de ejes
   const pasos = 10;
-  ctx.font = '12px sans-serif';
+  ctx.font = '11px sans-serif';
   ctx.fillStyle = '#64748B';
 
   for (let i = 0; i <= pasos; i++) {
     const valorX = rangos.minX + (rangos.maxX - rangos.minX) * (i / pasos);
     const x = margen + ((anchoCanvas - 2 * margen) * i) / pasos;
     ctx.textAlign = 'center';
-    ctx.fillText(valorX.toFixed(1), x, altoCanvas - margen + 20);
+    ctx.fillText(formatearNumeroEje(valorX), x, altoCanvas - margen + 18);
     
     if (i > 0 && i < pasos) {
       ctx.beginPath();
       ctx.moveTo(x, altoCanvas - margen);
       ctx.lineTo(x, altoCanvas - margen + 4);
-      ctx.strokeStyle = '#64748B';
+      ctx.strokeStyle = '#94A3B8';
       ctx.lineWidth = 1;
       ctx.stroke();
     }
@@ -184,13 +291,13 @@ const dibujarEjes = (
     const valorY = rangos.minY + (rangos.maxY - rangos.minY) * (i / pasos);
     const y = altoCanvas - margen - ((altoCanvas - 2 * margen) * i) / pasos;
     ctx.textAlign = 'right';
-    ctx.fillText(valorY.toFixed(1), margen - 10, y + 4);
+    ctx.fillText(formatearNumeroEje(valorY), margen - 8, y + 4);
     
     if (i > 0 && i < pasos) {
       ctx.beginPath();
       ctx.moveTo(margen - 4, y);
       ctx.lineTo(margen, y);
-      ctx.strokeStyle = '#64748B';
+      ctx.strokeStyle = '#94A3B8';
       ctx.lineWidth = 1;
       ctx.stroke();
     }
@@ -198,6 +305,55 @@ const dibujarEjes = (
 };
 
 
+
+// Dibujar leyenda de colores
+const dibujarLeyenda = (
+  ctx: CanvasRenderingContext2D,
+  datos: FilaDatos[],
+  anchoCanvas: number,
+  columnas: ConfiguracionColumnas
+): void => {
+  if (!columnas.nombreColor) return;
+  
+  // Obtener colores únicos con sus valores originales
+  const coloresUnicos = new Map<string, string>();
+  datos.forEach((fila, idx) => {
+    if (fila.color) {
+      const colorResuelto = resolverColorBurbuja(fila.color, generarColoresDefault(datos.length)[idx]);
+      coloresUnicos.set(fila.color, colorResuelto);
+    }
+  });
+  
+  if (coloresUnicos.size === 0) return;
+  
+  const items = Array.from(coloresUnicos.entries());
+  const startX = anchoCanvas - 200;
+  let startY = 60;
+  
+  ctx.font = 'bold 12px sans-serif';
+  ctx.fillStyle = '#1E293B';
+  ctx.textAlign = 'left';
+  ctx.fillText(columnas.nombreColor + ':', startX, startY);
+  startY += 20;
+  
+  ctx.font = '11px sans-serif';
+  items.forEach(([valor, color], idx) => {
+    const y = startY + idx * 22;
+    
+    // Cuadro de color
+    ctx.fillStyle = color;
+    ctx.globalAlpha = 0.7;
+    ctx.fillRect(startX, y - 10, 14, 14);
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = '#94A3B8';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(startX, y - 10, 14, 14);
+    
+    // Texto
+    ctx.fillStyle = '#475569';
+    ctx.fillText(valor.length > 15 ? valor.substring(0, 15) + '...' : valor, startX + 20, y);
+  });
+};
 
 export const dibujarDiagrama = (
   canvas: HTMLCanvasElement,
@@ -211,6 +367,7 @@ export const dibujarDiagrama = (
   const anchoCanvas = canvas.width;
   const altoCanvas = canvas.height;
 
+  // Fondo blanco
   ctx.fillStyle = '#FFFFFF';
   ctx.fillRect(0, 0, anchoCanvas, altoCanvas);
 
@@ -221,37 +378,33 @@ export const dibujarDiagrama = (
 
   const burbujas = calcularDatosBurbujas(datos, anchoCanvas, altoCanvas, margen);
 
+  // Dibujar burbujas con estilo profesional
   burbujas.forEach((burbuja) => {
-    const gradiente = ctx.createRadialGradient(
-      burbuja.x - burbuja.radio / 3,
-      burbuja.y - burbuja.radio / 3,
-      0,
-      burbuja.x,
-      burbuja.y,
-      burbuja.radio
-    );
-    gradiente.addColorStop(0, burbuja.color);
-    gradiente.addColorStop(1, burbuja.color + 'DD');
-
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
-    ctx.shadowBlur = 8;
-    ctx.shadowOffsetX = 2;
-    ctx.shadowOffsetY = 2;
-
-    ctx.fillStyle = gradiente;
-    ctx.globalAlpha = 0.85;
+    // Fill sólido con transparencia ligera
+    ctx.fillStyle = burbuja.color;
+    ctx.globalAlpha = 0.7;
     ctx.beginPath();
     ctx.arc(burbuja.x, burbuja.y, burbuja.radio, 0, 2 * Math.PI);
     ctx.fill();
 
-    ctx.strokeStyle = '#FFFFFF';
-    ctx.lineWidth = 2;
+    // Borde fino para definición
     ctx.globalAlpha = 1;
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = 1.5;
     ctx.stroke();
-
-    ctx.shadowColor = 'transparent';
-    ctx.shadowBlur = 0;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 0;
+    
+    // Borde de color más oscuro para mejor separación
+    ctx.strokeStyle = burbuja.color;
+    ctx.lineWidth = 0.5;
+    ctx.globalAlpha = 0.4;
+    ctx.stroke();
+    
+    ctx.globalAlpha = 1;
   });
+  
+  // Dibujar leyenda si hay cuarta dimensión
+  dibujarLeyenda(ctx, datos, anchoCanvas, columnas);
 };
+
+// Exportar burbujas para interactividad (tooltips)
+export type { DatosBurbuja };
